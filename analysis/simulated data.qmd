@@ -1,0 +1,1051 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+# Load Libary
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(reshape2)
+library(janitor)
+library(Amelia)
+```
+
+# Real Dataset
+
+```{r}
+data<- read_csv("C:/Study (Uni)/Statistical Computing (R)/project/car_price_prediction.csv")
+data
+```
+
+# Simulated Data
+
+```{r}
+##############################
+# 1) SIMULATE CLEAN DATA
+##############################
+
+# Fix random seed so results are reproducible
+set.seed(123)
+
+# Number of rows (same size as the real dataset)
+n <- 19237  
+
+# -----------------------------
+# Simulate NUMERIC variables
+# -----------------------------
+sim_numeric <- data.frame(
+  
+  # Car price (right-skewed, like real prices)
+  Price = round(rlnorm(n, meanlog = 9.5, sdlog = 0.6), 0),
+  
+  # Levy / tax (also skewed)
+  Levy = round(rlnorm(n, meanlog = 6, sdlog = 0.8), 0),
+  
+  # Engine volume (numeric, slightly skewed)
+  # +1 avoids very small values
+  Engine_volume = round(rlnorm(n, meanlog = 0.5, sdlog = 0.3) + 1, 1),
+  
+  # Mileage (exponential distribution, common for distances)
+  Mileage = round(rexp(n, rate = 1/100000)),
+  
+  # Number of cylinders (discrete values)
+  Cylinders = sample(3:8, n, replace = TRUE),
+  
+  # Number of airbags
+  Airbags = sample(2:12, n, replace = TRUE),
+  
+  # Production year
+  Prod_year = sample(1995:2023, n, replace = TRUE)
+)
+
+# -----------------------------
+# Simulate CATEGORICAL variables
+# -----------------------------
+sim_cat <- data.frame(
+  
+  # Car manufacturer
+  Manufacturer = sample(
+    c("TOYOTA","HONDA","FORD","HYUNDAI",
+      "LEXUS","CHEVROLET","OPEL","MERCEDES-BENZ"),
+    n, replace = TRUE
+  ),
+  
+  # Car model
+  Model = sample(
+    c("Prius","Camry","CHR","RX 450","RX 350",
+      "E 220","Vectra","Elantra","Transit","Santa FE"),
+    n, replace = TRUE
+  ),
+  
+  # Car category
+  Category = sample(
+    c("Sedan","Hatchback","Jeep","Goods wagon","Microbus"),
+    n, replace = TRUE
+  ),
+  
+  # Leather interior (40% Yes, 60% No)
+  Leather_interior = sample(
+    c("Yes","No"),
+    n, replace = TRUE,
+    prob = c(0.4, 0.6)
+  ),
+  
+  # Fuel type
+  Fuel_type = sample(
+    c("Petrol","Diesel","Hybrid","CNG","Plug-in Hybrid"),
+    n, replace = TRUE
+  ),
+  
+  # Gear box type
+  Gear_box_type = sample(
+    c("Automatic","Manual","Tiptronic","Variator"),
+    n, replace = TRUE
+  ),
+  
+  # Drive wheels
+  Drive_wheels = sample(
+    c("4x4","Front","Rear"),
+    n, replace = TRUE
+  ),
+  
+  # Number of doors
+  Doors = sample(
+    c("2-Mar","4-May"),
+    n, replace = TRUE
+  ),
+  
+  # Steering wheel position
+  Wheel = sample(
+    c("Left wheel","Right-hand drive"),
+    n, replace = TRUE
+  ),
+  
+  # Car color
+  Color = sample(
+    c("White","Black","Silver","Blue","Grey","Green"),
+    n, replace = TRUE
+  ),
+  
+  # Turbo indicator (only 10% Yes)
+  turbo = sample(
+    c("Yes","No"),
+    n, replace = TRUE,
+    prob = c(0.1, 0.9)
+  )
+)
+
+# -----------------------------
+# Combine numeric and categorical data
+# -----------------------------
+sim_data <- cbind(sim_numeric, sim_cat)
+
+####################################################
+# 2) ADD REAL-WORLD DATA PROBLEMS (ON PURPOSE)
+####################################################
+
+# Set random seed again for reproducibility
+set.seed(123)
+
+# -----------------------------
+# Define error proportions
+# -----------------------------
+na_frac_numeric <- 0.05   # 5% missing values in numeric columns
+na_frac_cat <- 0.10       # 10% missing values in categorical columns
+outlier_frac <- 0.02     # 2% numeric outliers
+typo_frac <- 0.02        # 2% categorical typos
+dup_frac <- 0.005        # 0.5% duplicate rows
+
+# -----------------------------
+# Identify column types
+# -----------------------------
+
+# Get names of numeric columns
+numeric_cols <- names(sim_data)[sapply(sim_data, is.numeric)]
+
+# Get names of categorical columns
+cat_cols <- names(sim_data)[sapply(sim_data, is.character)]
+
+# -----------------------------
+# Introduce MISSING VALUES
+# -----------------------------
+
+# Add missing values to numeric columns
+sim_data[numeric_cols] <- lapply(sim_data[numeric_cols], function(x) {
+  
+  # Randomly select indices to replace with NA
+  x[sample(length(x), floor(length(x) * na_frac_numeric))] <- NA
+  x
+})
+
+# Add missing values to categorical columns
+sim_data[cat_cols] <- lapply(sim_data[cat_cols], function(x) {
+  
+  # Randomly select indices to replace with NA
+  x[sample(length(x), floor(length(x) * na_frac_cat))] <- NA
+  x
+})
+
+# -----------------------------
+# Introduce OUTLIERS
+# -----------------------------
+sim_data[numeric_cols] <- lapply(sim_data[numeric_cols], function(x) {
+  
+  # Randomly choose indices for outliers
+  idx <- sample(length(x), floor(length(x) * outlier_frac))
+  
+  # Inflate selected values to create outliers
+  x[idx] <- x[idx] * runif(length(idx), 2, 10)
+  x
+})
+
+# -----------------------------
+# Introduce TYPO errors
+# -----------------------------
+sim_data[cat_cols] <- lapply(sim_data[cat_cols], function(x) {
+  
+  # Randomly choose indices for typos
+  idx <- sample(length(x), floor(length(x) * typo_frac))
+  
+  # Add random text to simulate spelling errors
+  x[idx] <- paste0(x[idx], sample(c("", " ", "_typo"), 1))
+  x
+})
+
+# -----------------------------
+# Add DUPLICATE rows
+# -----------------------------
+
+# Randomly sample some rows to duplicate
+dup_rows <- sim_data[
+  sample(1:nrow(sim_data), floor(nrow(sim_data) * dup_frac)),
+]
+
+# Append duplicate rows to the dataset
+sim_data <- rbind(sim_data, dup_rows)
+
+# -----------------------------
+# Inspect the final dataset
+# -----------------------------
+head(sim_data)     # View first rows
+summary(sim_data)  # Summary statistics and NA counts
+
+```
+
+```{r}
+sim_data
+```
+
+# EDA
+
+```{r}
+# View dataset structure (types of each column)
+str(sim_data)
+
+# Dataset dimensions (rows, columns)
+dim(sim_data)
+
+# Column names
+names(sim_data)
+
+```
+
+### Overview
+
+```{r}
+(str(sim_data))
+
+```
+
+```{r}
+head(sim_data)       # first few rowsQuick Overview
+glimpse(sim_data)    # structure and column types
+summary(sim_data)    # summary stats for numeric columns
+dim(sim_data)        # dimensions (rows, columns)
+names(sim_data)      # column names
+```
+
+```{r}
+sim_data[sim_data == "-" | sim_data == "" | sim_data == "NA"] <- NA
+sim_data   
+```
+
+```{r}
+#Real dataset 
+#replace with NA
+
+data[data == ""] <- NA 
+data[data == "?"] <- NA
+data[data == "NA"] <- NA   # when text, not real NA
+ data[data == "-"] <- NA  
+  data[data == "^"] <- NA
+```
+
+```{r}
+#simulated dataset 
+#replace with NA
+
+sim_data[sim_data == ""] <- NA 
+sim_data[sim_data == "?"] <- NA
+sim_data[sim_data == "NA"] <- NA   # when text, not real NA
+sim_data[sim_data == "-"] <- NA  
+sim_data[sim_data == "^"] <- NA
+```
+
+```{r}
+#Real dataset
+sum(is.na(data))                 # total NA values
+colSums(is.na(data))             # missing count per column
+sapply(data, function(x) mean(is.na(x))*100)   # % missing per column
+
+missmap(data, main="Missing Data Map", col=c("red", "green"))
+
+#simulated dataset
+sum(is.na(sim_data))                 # total NA values
+colSums(is.na(sim_data))             # missing count per column
+sapply(sim_data, function(x) mean(is.na(x))*100)   # % missing per column
+
+missmap(sim_data, main="Missing Simulated Data Map", col=c("red", "green"))
+
+```
+
+### Univariate Analysis
+
+### Numerical
+
+#### Price
+
+```{r}
+#Real dataset
+summary(data$Price)
+#simulated data 
+summary(sim_data$Price)
+
+# Histogram
+ggplot(data, aes(x = Price)) +
+  geom_histogram(fill="steelblue", bins=30) +
+  labs(title="Distribution of Price for real datast", x="Price", y="Count")
+
+# Histogram
+ggplot(sim_data, aes(x = Price)) +
+  geom_histogram(fill="steelblue", bins=30) +
+  labs(title="Distribution of Price for simulated data", x="Price", y="Count")
+
+```
+
+```{r}
+# Boxplot
+ggplot(data, aes(y = Price)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Price for real datast", y="Price")
+
+# Boxplot
+ggplot(sim_data, aes(y = Price)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Price for simulated data", y="Price")
+```
+
+#### Levy
+
+```{r}
+data$Levy <- as.numeric(as.character(data$Levy))
+
+sim_data$Levy <- as.numeric(as.character(sim_data$Levy))
+```
+
+```{r}
+#real dataset
+summary(data$Levy)
+summary(sim_data$Levy)
+
+ggplot(data, aes(x = Levy)) +
+  geom_histogram(fill="steelblue", bins=30) +
+  labs(title="Distribution of Levy for real data", x="Levy", y="Count")
+
+ggplot(sim_data, aes(x = Levy)) +
+  geom_histogram(fill="steelblue", bins=30) +
+  labs(title="Distribution of Levy for simulated data", x="Levy", y="Count")
+
+
+```
+
+```{r}
+ggplot(data, aes(y = Levy)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Levy for real data", y="Levy")
+
+ggplot(sim_data, aes(y = Levy)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Levy simulated data", y="Levy")
+```
+
+#### Prod. year
+
+```{r}
+#real dataset
+summary(data$`Prod. year`)
+#simulated data
+summary(sim_data$`Prod_year`)
+
+ggplot(data, aes(x =`Prod. year`)) +
+  geom_histogram(fill="steelblue", bins=15) +
+  labs(title="Production Year Distribution for real data", x="Production Year", y="Count")
+
+ggplot(sim_data, aes(x =`Prod_year`)) +
+  geom_histogram(fill="steelblue", bins=15) +
+  labs(title="Production Year Distribution for simulated data", x="Production Year", y="Count")
+
+
+```
+
+```{r}
+
+ggplot(data, aes(y =`Prod. year`)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Production Year for real data", y="Production Year")
+
+ggplot(sim_data, aes(y =`Prod_year`)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Production Year for simulated data", y="Production Year")
+```
+
+#### Cylinders
+
+```{r}
+#real dataset
+summary(data$Cylinders)
+#simulated dataset
+summary(sim_data$Cylinders)
+
+ggplot(data, aes(x = Cylinders)) +
+  geom_histogram(fill="steelblue") +
+  labs(title="Distribution of Cylinders for real data", x="Cylinders", y="Count")
+
+ggplot(sim_data, aes(x = Cylinders)) +
+  geom_histogram(fill="steelblue") +
+  labs(title="Distribution of Cylinders for simulated data", x="Cylinders", y="Count")
+
+```
+
+```{r}
+
+ggplot(data, aes(y = Cylinders)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Cylinders for real data", y="Cylinder")
+
+ggplot(sim_data, aes(y = Cylinders)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Cylinders for simulated data", y="Cylinder")
+```
+
+#### Airbags
+
+```{r}
+#real data
+summary(data$Airbags)
+#simulated data
+summary(sim_data$Airbags)
+
+ggplot(data, aes(x = Airbags)) +
+  geom_histogram(fill="steelblue") +
+  labs(title="Distribution of Airbags for real data", x="Airbags", y="Count")
+
+ggplot(sim_data, aes(x = Airbags)) +
+  geom_histogram(fill="steelblue") +
+  labs(title="Distribution of Airbags simulated data", x="Airbags", y="Count")
+
+```
+
+```{r}
+
+ggplot(data, aes(y = Airbags)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Airbags real daa", y="Airbags")
+
+ggplot(sim_data, aes(y = Airbags)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Airbags real simulated data", y="Airbags")
+```
+
+### categorical
+
+#### Fuel type
+
+```{r}
+#real data
+table(data$`Fuel type`)
+
+ggplot(data, aes(x = `Fuel type`)) +
+  geom_bar(fill="cadetblue") +
+  labs(title="Fuel Type Distribution for real data", x="Fuel Type", y="Count")
+
+#simulated data
+table(sim_data$`Fuel type`)
+
+ggplot(sim_data, aes(x = `Fuel_type`)) +
+  geom_bar(fill="cadetblue") +
+  labs(title="Fuel Type Distribution for simulated data", x="Fuel Type", y="Count")
+```
+
+### manufacturer
+
+```{r}
+table(data$Manufacturer)
+
+top_manufacturers_real <- data %>%
+  count(Manufacturer, sort = TRUE) %>%
+  slice_head(n = 10)
+
+top_manufacturers_real
+
+table(sim_data$Manufacturer)
+
+top_manufacturers_sim <- sim_data %>%
+  count(Manufacturer, sort = TRUE) %>%
+  slice_head(n = 10)
+
+top_manufacturers_sim
+
+ggplot(top_manufacturers_real, aes(x = reorder(Manufacturer, n), y = n)) +
+  geom_bar(stat = "identity", fill = "cadetblue") +
+  coord_flip() +
+  labs(title = "Top 10 Cars by Manufacturer", x = "Manufacturer", y = "Count") +
+  theme_minimal()
+
+
+ggplot(top_manufacturers_sim, aes(x = reorder(Manufacturer, n), y = n)) +
+  geom_bar(stat = "identity", fill = "cadetblue") +
+  coord_flip() +
+  labs(title = "Top 10 Cars by Manufacturer", x = "Manufacturer", y = "Count") +
+  theme_minimal()
+```
+
+#### Gear box type
+
+```{r}
+
+table(data$`Gear box type`) 
+ggplot(data, aes(x =`Gear box type`)) +   
+  geom_bar(fill="cadetblue") +   
+  labs(title="Gear Box Type Count for real data", x="Gearbox Type", y="Count")
+
+table(sim_data$`Gear_box_type`) 
+ggplot(sim_data, aes(x =`Gear_box_type`)) +   
+  geom_bar(fill="cadetblue") +   
+  labs(title="Gear Box Type Count for simulated data", x="Gearbox Type", y="Count")
+```
+
+#### Drive wheels
+
+```{r}
+table(data$`Drive wheels`)  
+ggplot(data, aes(x = `Drive wheels`)) +   
+  geom_bar(fill="cadetblue") +   
+  labs(title="Drive Wheels Count for real data", x="Drive Wheels", y="Count") 
+
+
+table(sim_data$Drive_wheels)  
+ggplot(sim_data, aes(x = Drive_wheels)) +   
+  geom_bar(fill="cadetblue") +   
+  labs(title="Drive Wheels Count for simulated data", x="Drive Wheels", y="Count")
+```
+
+### color
+
+```{r}
+table(data$Color) 
+ggplot(data, aes(x = Color)) +  
+  geom_bar(fill="cadetblue") +  
+  labs(title="Car Color Distribution for real data", x="Color", y="Count") +   
+  theme(axis.text.x = element_text(angle=45, hjust=1)) 
+
+table(sim_data$Color) 
+ggplot(sim_data, aes(x = Color)) +  
+  geom_bar(fill="cadetblue") +  
+  labs(title="Car Color Distribution for simulated data", x="Color", y="Count") +   
+  theme(axis.text.x = element_text(angle=45, hjust=1)) 
+```
+
+### category
+
+```{r}
+
+table(data$Category)  
+ggplot(data, aes(x = Category)) +   
+  geom_bar(fill="cadetblue") +   
+labs(title="Car Category Distribution for real data", x="Category", y="Count") 
+
+table(sim_data$Category)  
+ggplot(sim_data, aes(x = Category)) +   
+  geom_bar(fill="cadetblue") +   
+labs(title="Car Category Distribution for simulated data", x="Category", y="Count") 
+```
+
+# Cleaning
+
+```{r}
+#Clean Column Names
+sim_data <- sim_data %>%
+  clean_names()
+```
+
+```{r}
+#Remove dublicate 
+sim_data <- sim_data %>%
+  distinct()
+
+```
+
+```{r}
+# Replace common placeholders with real NA values
+sim_data <- sim_data %>%
+  mutate(across(where(is.character), ~ na_if(., ""))) %>%
+  mutate(across(where(is.character), ~ na_if(., "?"))) %>%
+  mutate(across(where(is.character), ~ na_if(., "NA"))) %>%
+  mutate(across(where(is.character), ~ na_if(., "-")))
+
+
+```
+
+```{r}
+# Fix data types (CRITICAL)
+
+sim_data <- sim_data %>%
+  mutate(
+    price = as.numeric(price),                     # target variable
+    levy = as.numeric(levy),                       # tax
+    engine_volume = as.numeric(
+      str_remove(engine_volume, "[^0-9\\.]")       # remove text like "Turbo"
+    ),
+    mileage = as.numeric(mileage),                 # kilometers driven
+    cylinders = as.numeric(cylinders),             # engine cylinders
+    airbags = as.numeric(airbags),                 # safety feature
+    prod_year = as.numeric(prod_year)              # production year
+  )
+```
+
+```{r}
+#Validate logical constraints
+# Remove impossible values
+
+sim_data <- sim_data %>%
+  filter(
+    price > 0,
+    mileage >= 0,
+    prod_year <= as.numeric(format(Sys.Date(), "%Y"))
+  )
+```
+
+```{r}
+# Create turbo indicator
+sim_data <- sim_data %>%
+  mutate(
+    turbo = if_else(str_detect(engine_volume, "Turbo"), "Yes", "No"),
+    turbo = as.factor(turbo)
+  )
+```
+
+```{r}
+# Convert categorical variables
+
+sim_data <- sim_data %>%
+  mutate(across(
+    c(manufacturer, model, category, fuel_type,
+      gear_box_type, drive_wheels, wheel,
+      color, leather_interior, turbo),
+    as.factor
+  ))
+```
+
+```{r}
+# Handle missing values (IMPUTATION)
+
+# Numeric → median (robust to outliers)
+sim_data <- sim_data %>%
+  mutate(across(
+    where(is.numeric),
+    ~ replace_na(., median(., na.rm = TRUE))
+  ))
+```
+
+```{r}
+# Mode function for categorical variables
+mode_fun <- function(x) {
+  ux <- na.omit(x)
+  ux[which.max(tabulate(match(ux, ux)))]
+}
+
+# Categorical → mode
+sim_data <- sim_data %>%
+  mutate(across(
+    where(is.factor),
+    ~ replace_na(., mode_fun(.))
+  ))
+
+```
+
+```{r}
+# Function to remove outliers using IQR rule
+remove_outliers <- function(df, col) {
+  Q1 <- quantile(df[[col]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(df[[col]], 0.75, na.rm = TRUE)
+  IQR <- Q3 - Q1
+
+  df %>%
+    filter(
+      df[[col]] >= Q1 - 1.5 * IQR &
+      df[[col]] <= Q3 + 1.5 * IQR
+    )
+}
+
+# Apply outlier removal to skewed variables
+sim_data <- remove_outliers(sim_data, "price")
+sim_data <- remove_outliers(sim_data, "mileage")
+```
+
+```{r}
+# Apply log transformation to reduce skewness
+# +1 avoids log(0)
+sim_data <- sim_data %>%
+  mutate(
+    log_price = log(price + 1),
+    log_mileage = log(mileage + 1)
+  )
+```
+
+```{r}
+# Check that no missing values remain
+colSums(is.na(sim_data))
+
+```
+
+```{r}
+# Check unique values in doors
+unique(sim_data$doors)
+
+```
+
+```{r}
+#CLEAN DOORS VALUES
+
+sim_data <- sim_data %>%
+  mutate(
+    # Extract the first digit (number of doors)
+    doors = str_extract(doors, "[0-9]"),
+    
+    # Convert to factor (categorical variable)
+    doors = as.factor(doors)
+  )
+
+```
+
+```{r}
+# Function to calculate mode
+mode_fun <- function(x) {
+  ux <- na.omit(x)
+  ux[which.max(tabulate(match(ux, ux)))]
+}
+
+# Replace missing doors with most common value
+sim_data <- sim_data %>%
+  mutate(
+    doors = replace_na(doors, mode_fun(doors))
+  )
+```
+
+```{r}
+# Check missing values again
+colSums(is.na(sim_data))
+
+```
+
+```{r}
+
+sim_data <- sim_data %>%
+  mutate(across(
+    c(price, levy, engine_volume, mileage, cylinders, airbags),
+    ~ round(.x, 2)
+  ))
+
+```
+
+```{r}
+sim_data
+```
+
+```{r}
+# Inspect final structure
+glimpse(sim_data)
+
+```
+
+```{r}
+# Summary statistics after cleaning
+summary(sim_data)
+
+```
+
+```{r}
+missmap(sim_data,
+        main = "Missing Values Map",
+        col = c("red", "green"),
+        legend = TRUE)
+
+```
+
+# EDA (after cleaning)
+
+```{r}
+ggplot(sim_data, aes(log_price)) +
+  geom_histogram(bins = 30, fill = "steelblue") +
+  
+  labs(title = "Distribution of Car Prices")
+
+```
+
+```{r}
+ggplot(sim_data, aes(y =log_price)) +
+  geom_boxplot(fill = "steelblue") + 
+  labs(
+    title = "Boxplot of Car Price",   
+    y = "Price")
+```
+
+```{r}
+top10_manufacturers <- data %>%
+  
+  count(Manufacturer, sort = TRUE) %>%
+  
+  slice_max(n, n = 10)
+
+ggplot(top10_manufacturers, aes(x = reorder(Manufacturer, n), y = n)) +
+  
+  
+  geom_bar(stat = "identity", fill = "steelblue") +
+  
+  # Flip coordinates to make labels readable
+  coord_flip()+
+  labs(
+    title = "Top 10 Manufacturers in Car Price Data",
+    x = "Manufacturer",
+    y = "Count"
+  )+theme_minimal()
+
+
+
+top10_manufacturers <- sim_data %>%
+  
+  count(manufacturer, sort = TRUE) %>%
+  
+      slice_max(n, n = 10)
+
+ggplot(top10_manufacturers, aes(x = reorder(manufacturer, n), y = n)) +
+  
+  
+  geom_bar(stat = "identity", fill = "steelblue") +
+  
+  # Flip coordinates to make labels readable
+  coord_flip()+
+  labs(
+    title = "Top 10 Manufacturers in Car Price Data",
+    x = "Manufacturer",
+    y = "Count"
+  )+theme_minimal()
+```
+
+```{r}
+# Create a bar plot to show counts of cars by fuel type
+ggplot(data, aes(x = `Fuel type`)) +   
+  geom_bar(fill = "blue") +          
+  labs(
+    title = "Count of Cars by Fuel Type",  
+    x = "Fuel Type",                        
+    y = "Count"                             
+  )+theme_minimal()  # Apply a clean minimal theme
+
+
+# Create a bar plot to show counts of cars by fuel type
+ggplot(sim_data, aes(x = fuel_type)) +   
+  geom_bar(fill = "blue") +          
+  labs(
+    title = "Count of Cars by Fuel Type",  
+    x = "Fuel Type",                        
+    y = "Count"                             
+  )+theme_minimal()  # Apply a clean minimal theme
+```
+
+```{r}
+data %>%
+  group_by(`Prod. year`) %>%                             
+  summarise(AveragePrice = mean(Price)) %>%   
+ 
+  ggplot(aes(x = `Prod. year`, y = AveragePrice)) +      
+  geom_line(color = "skyblue", linewidth = 1.2) +        
+  geom_point(size = 2) +                                 
+  labs(
+    title = "Average Price by Year",                      
+    x = "Year",                                           
+    y = "Average Price"                                  
+  )+theme_minimal()  
+
+sim_data %>%
+  group_by(prod_year) %>%                             
+  summarise(Averageprice = mean(price)) %>%   
+ 
+  ggplot(aes(x = prod_year, y = Averageprice)) +      
+  geom_line(color = "skyblue", linewidth = 1.2) +        
+  geom_point(size = 2) +                                 
+  labs(
+    title = "Average Price by Year",                      
+    x = "Year",                                           
+    y = "Average Price"                                  
+  )+theme_minimal()  
+```
+
+```{r}
+fuel_df <- data %>% count(`Fuel type`)
+ggplot(fuel_df, aes(x = "", y = n, fill = `Fuel type`)) +
+  geom_col(width = 1) +        
+  coord_polar("y") +           
+  labs(title = "Fuel Type Distribution")
+
+
+fuel_df <- sim_data %>% count(fuel_type)
+ggplot(fuel_df, aes(x = "", y = n, fill = fuel_type)) +
+  geom_col(width = 1) +        
+  coord_polar("y") +           
+  labs(title = "Fuel Type Distribution")
+```
+
+# **Data Manipulation**
+
+```{r}
+as_tibble(sim_data)
+```
+
+## Descriptive questions
+
+### Q1. What are the mean, median, and minimum/maximum car prices?
+
+```{r}
+  sim_data %>%   
+   select(price) %>%  
+   summarise( 
+     mean_price  = mean(price),
+     median_price = median(price),
+     min_price  = min(price),
+     max_price = max(price))
+```
+
+### Q2. How many cars are there for each fuel type?
+
+```{r}
+sim_data %>%   
+  group_by(fuel_type) %>%   
+  summarise(count = n()) %>%   
+  arrange(desc(count))
+```
+
+### Q3. What is the average price for manufacturers with at least 20 cars?
+
+```{r}
+sim_data %>%   
+  group_by(model) %>%   
+  summarise(avg_price = mean(price),cars = n()) %>%  
+  filter(cars >= 20) %>%   
+  arrange(desc(avg_price))
+```
+
+### Q4. What are the range, variance, and standard deviation of car prices?
+
+```{r}
+sim_data %>%   
+  select(price) %>%   
+  summarise(price_range = max(price) - min(price),
+            variance= var(price),sd_price = sd(price))
+```
+
+### Q5. How does price variability differ by fuel type for cars priced below 50,000?
+
+```{r}
+sim_data %>%   
+  filter(price < 50000) %>%   
+  group_by(fuel_type) %>%   
+  summarise(     sd_price  = sd(price, na.rm = TRUE),     var_price = var(price, na.rm = TRUE),     count     = n()   ) %>%   
+  arrange(desc(sd_price))
+```
+
+### Q6. Create `Car_age` and find the average price for cars produced after 2005
+
+```{r}
+sim_data <- data %>%
+  mutate(Car_Age = 2025 - year)
+
+as_tibble(sim_data)
+```
+
+```{r}
+sim_data %>%
+  filter(year > 2005) %>%
+  group_by(`Car_Age`) %>%
+  summarise(
+    avg_price = mean(Price,na.rm = TRUE),
+    cars = n()
+  ) %>%
+  arrange(desc(`Car_Age`))
+```
+
+### Q7. Show the top 10 most expensive automatic cars
+
+```{r}
+data %>%
+  filter(Gear_box == "Automatic") %>%
+  select(brand, Model, Price) %>%
+  arrange(desc(Price)) %>%
+  slice_head(n = 10)
+```
+
+### Q8. What is the covariance between mileage and price?
+
+```{r}
+sim_data %>%   summarise(covariance = cov(price,mileage , use = "complete.obs"))
+```
+
+### Q9. For the cars produced after 2010, is there a relationship between mileage and price?
+
+```{r}
+ sim_data %>%   
+filter(year> 2010) %>%  
+summarise(pearson_correlation = cor(Price,Mileage))
+```
+
+### Q10. For the cars produced after 2012, does higher mileage generally means lower price across fuel types ?
+
+```{r}
+{r}
+sim_data %>%   
+  filter(year > 2012) %>%   
+  group_by(fuel_type) %>%   
+  summarise(spearman_correlation = cor(rank(price), (mileage)),count = n())
+```
+
+### Q11. Provide a descriptive summary of car prices by gearbox type?
+
+```{r}
+sim_data %>%
+  group_by(gear_box) %>%
+  summarise(
+    mean_price   = mean(price),
+    median_price = median(price),
+    sd_price     = sd(price),
+    min_price    = min(price),
+    max_price    = max(price),
+    cars         = n()
+  ) %>%
+  arrange(desc(mean_price))
+```
