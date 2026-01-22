@@ -23,7 +23,7 @@ The platform consists of three core pillars:
 ### 1. 📊 Mission Control
 The home dashboard provides an immediate pulse on the market, tracking KPIs like Total Volume, Average Levy, and Stock Levels. It visualizes the right-skewed nature of the market, identifying the dominance of budget-friendly vehicles versus luxury outliers.
 
-![Dashboard Preview](assets/dashboard-preview.png.png)
+![Dashboard Preview](assets/dashboard-preview.png)
 
 ### 2. 🔮 The Forecasting Studio (AI Configurator)
 The crown jewel of the application. This module allows users to interact directly with the **Random Forest** model.
@@ -31,12 +31,12 @@ The crown jewel of the application. This module allows users to interact directl
 * **Dynamic Visuals:** The 3D car render adapts its color via CSS filters based on user selection.
 * **Market Context:** A gauge chart visualizes where the predicted price sits within the broader price spectrum.
 
-![Forecasting Studio](assets/forecasting-studio-ui.png.png)
+![Forecasting Studio](assets/forecasting-studio-ui.png)
 
 ### 3. 🗂️ Inventory Explorer
 Transparency is key. The Data Explorer module utilizes the `DT` library to provide a searchable, sortable view of the raw training data. It allows stakeholders to verify model inputs and explore specific car configurations manually.
 
-![Data Table](assets/data-explorer.png.png)
+![Data Table](assets/data-explorer.png)
 
 ---
 
@@ -48,8 +48,8 @@ We conducted a deep dive into the dataset (`analysis/01_car_price_analysis.qmd`)
 * **Price Skewness:** The dataset is heavily right-skewed. [cite_start]We applied **Winsorization** to handle extreme outliers in Price and Mileage before modeling[cite: 12].
 * [cite_start]**Fuel Trends:** Petrol is the dominant fuel type, though Hybrids show a strong presence in the mid-market segment[cite: 27].
 
-![Price Distribution](assets/price_dist.png.png)
-![Price Distribution](assets/price_dist2.png.png)
+![Price Distribution](assets/price_dist.png)
+[Price Distribution](assets/price_dist2.png)
 
 ### 🧪 2. Statistical Inference
 We moved beyond visualization to statistical proof using R's inference capabilities:
