@@ -150,7 +150,7 @@ Ensure you have the following installed:
 Open your terminal or Git Bash and run:
 
 ```bash
-git clone [https://github.com/Wttcss/onyx-auto-analytics.git](https://github.com/yourusername/onyx-auto-analytics.git)
+git clone [https://github.com/Wttcss/onyx-auto-analytics.git](https://github.com/Wttcss/onyx-auto-analytics.git)
 cd onyx-auto-analytics
 ``` 
 ### 3. Install Dependencies
