@@ -45,12 +45,12 @@ Transparency is key. The Data Explorer module utilizes the `DT` library to provi
 ### 🔍 1. Exploratory Data Analysis (EDA)
 We conducted a deep dive into the dataset, revealing critical market trends regarding price distribution and skewness. We applied **Winsorization** to handle extreme outliers in Price and Mileage before modeling.
 
-![Price Distribution](assets/price-dist.png)
+![Price Distribution](assets/price_dist.png)
 
 ### 📈 2. Market Dominance & Brand Positioning
 Our analysis highlighted clear market leaders. Toyota dominates the inventory volume, while brands like Mercedes-Benz and Lexus command higher average price points, creating distinct market segments.
 
-![Market Share](assets/market-share.png)
+![Market Share](assets/market_share.png)
 
 ### 🧪 3. Statistical Inference
 We moved beyond visualization to statistical proof using R's inference capabilities:
