@@ -1,0 +1,1320 @@
+---
+title: "Car Price Prediction"
+format: html
+editor: visual
+---
+
+## load libraries
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(reshape2)
+```
+
+## load data set
+
+```{r}
+data<- read_csv("C:/Study (Uni)/Statistical Computing (R)/project/car_price_prediction.csv")
+data
+```
+
+## overview
+
+```{r}
+(str(data))
+```
+
+```{r}
+names(data)
+```
+
+```{r}
+summary(data)
+```
+
+```{r}
+data[data == "-" | data == "" | data == "NA"] <- NA
+data                
+```
+
+```{r}
+head(data)       # first few rowsQuick Overview
+glimpse(data)    # structure and column types
+summary(data)    # summary stats for numeric columns
+dim(data)        # dimensions (rows, columns)
+names(data)      # column names
+
+```
+
+## Check Data types
+
+```{r}
+str(data)
+ head(data$Levy)
+ class(data$Levy)
+ #as we see levy is character
+ #we should make it numeric
+```
+
+## Check for Missing Values
+
+```{r}
+data[data == ""] <- NA 
+data[data == "?"] <- NA
+data[data == "NA"] <- NA   # when text, not real NA
+ data[data == "-"] <- NA  
+  data[data == "^"] <- NA
+```
+
+```{r}
+sum(is.na(data))                 # total NA values
+colSums(is.na(data))             # missing count per column
+sapply(data, function(x) mean(is.na(x))*100)   # % missing per column
+
+library(Amelia)
+missmap(data, main="Missing Data Map", col=c("red", "green"))
+```
+
+## Univariate Analysis
+
+### Numerical
+
+#### Price
+
+```{r}
+summary(data$Price)
+
+# Histogram
+ggplot(data, aes(x = Price)) +
+  geom_histogram(fill="steelblue", bins=30) +
+  labs(title="Distribution of Price", x="Price", y="Count")
+
+# Boxplot
+ggplot(data, aes(y = Price)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Price", y="Price")
+
+
+```
+
+#### Levy
+
+```{r}
+data$Levy <- as.numeric(as.character(data$Levy))
+```
+
+```{r}
+summary(data$Levy)
+
+ggplot(data, aes(x = Levy)) +
+  geom_histogram(fill="steelblue", bins=30) +
+  labs(title="Distribution of Levy", x="Levy", y="Count")
+
+ggplot(data, aes(y = Levy)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Levy", y="Levy")
+```
+
+#### Prod. year
+
+```{r}
+summary(data$`Prod. year`)
+
+ggplot(data, aes(x =`Prod. year`)) +
+  geom_histogram(fill="steelblue", bins=15) +
+  labs(title="Production Year Distribution", x="Production Year", y="Count")
+
+ggplot(data, aes(y =`Prod. year`)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Production Year", y="Production Year")
+```
+
+#### Cylinders
+
+```{r}
+summary(data$Cylinders)
+
+ggplot(data, aes(x = Cylinders)) +
+  geom_histogram(fill="steelblue") +
+  labs(title="Distribution of Cylinders", x="Cylinders", y="Count")
+
+ggplot(data, aes(y = Cylinders)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Cylinders", y="Cylinder")
+```
+
+#### Airbags
+
+```{r}
+summary(data$Airbags)
+
+ggplot(data, aes(x = Airbags)) +
+  geom_histogram(fill="steelblue") +
+  labs(title="Distribution of Airbags", x="Airbags", y="Count")
+
+ggplot(data, aes(y = Airbags)) +
+  geom_boxplot(fill="tomato") +
+  labs(title="Boxplot of Airbags", y="Airbags")
+```
+
+#### Fuel type
+
+```{r}
+table(data$`Fuel type`)
+
+ggplot(data, aes(x = `Fuel type`)) +
+  geom_bar(fill="cadetblue") +
+  labs(title="Fuel Type Distribution", x="Fuel Type", y="Count")
+```
+
+## cleaning
+
+```{r}
+data$Levy <- as.numeric(gsub("[^0-9.]", "", data$Levy)) 
+data$`Engine volume`
+class(data$`Engine volume`)
+
+data$turbo <- ifelse(grepl("Turbo", data$`Engine volume`), "Yes", "No")
+head(data[, c("Engine volume", "turbo")])
+
+data$`Engine volume` <- as.numeric(gsub("[^0-9.]", "", data$`Engine volume`))
+class(data$`Engine volume`)
+```
+
+```{r}
+sum(is.na(data))
+```
+
+```{r}
+sum(duplicated(data)) 
+```
+
+## remove duplicates
+
+```{r}
+data_clean <- data[!duplicated(data), ]
+data <- unique(data)
+```
+
+```{r}
+sum(duplicated(data)) 
+```
+
+```{r}
+data_clean <- data %>% distinct(.keep_all = TRUE)
+sum(duplicated(data_clean)) 
+
+```
+
+```{r}
+colSums(is.na(data)) 
+```
+
+### preprocessing
+
+```{r}
+data$Levy <- as.numeric(gsub("[^0-9.]", "", data$Levy)) 
+
+data$`Engine volume`
+class(data$`Engine volume`)
+
+data$turbo <- ifelse(grepl("Turbo", data$`Engine volume`), "Yes", "No")
+head(data[, c("Engine volume", "turbo")])
+
+data$`Engine volume` <- as.numeric(gsub("[^0-9.]", "", data$`Engine volume`))
+class(data$`Engine volume`)
+```
+
+```{r}
+# Clean Doors-> remove "may" → numeric only 
+library(dplyr)
+data <- data %>%
+  mutate(`Doors` = as.numeric(gsub("[^0-9.]", "", `Doors`)))
+```
+
+```{r}
+# Convert categorical "Leather interior" to numeric binary variable
+# Yes → 1 , No → 0 
+data$`Leather interior` <- ifelse(data$`Leather interior` == "Yes", 1, 0)
+
+
+```
+
+```{r}
+data$engine_volume <- as.numeric(sub(" .*", "", data$`Engine volume`))
+data$turbo <- ifelse(grepl("Turbo", data$`Engine volume`, ignore.case = TRUE), 1, 0)
+
+```
+
+```{r}
+data$Mileage <- data$Mileage |>
+  gsub("km", "", x = _, ignore.case = TRUE) |>   # remove km (case-insensitive)
+  gsub(",", "", x = _) |>                        # remove commas
+  trimws() |>                                    # remove extra spaces
+  as.numeric()                                   # convert to numeric
+```
+
+```{r}
+data$Category[data$Category == "Jeep"] <- "SUV"
+```
+
+```{r}
+data <- data %>% select(-ID) #drop ID column using dplyr 
+```
+
+```{r}
+"Hydrogen" %in% data$`Fuel type`
+```
+
+```{r}
+sum(grepl("Hydrogen", data$`Fuel type`, ignore.case = TRUE))
+```
+
+```{r}
+data <- data %>% 
+  filter(`Fuel type` != "Hydrogen")
+```
+
+```{r}
+data <- data %>% 
+  filter(Doors != 3)
+```
+
+```{r}
+library(mice)
+# Rows where Levy is available
+data_complete <- data %>% filter(!is.na(Levy))
+
+# Rows where Levy is missing
+data_missing <- data %>% filter(is.na(Levy))
+
+model_levy <- lm(Levy ~ `Prod. year` +  engine_volume + Price,
+                 data = data_complete)
+
+data_missing$levy_pred <- predict(model_levy, newdata = data_missing)
+
+data$Levy <- ifelse(is.na(data$Levy),
+                    data_missing$levy_pred,
+                    data$Levy)
+data
+```
+
+```{r}
+data <- data %>% 
+  mutate(
+    brand = str_to_upper(Manufacturer),
+    fuel_type = str_to_title(`Fuel type`),
+    Gear_box = str_to_title(`Gear box type`)
+  )
+```
+
+```{r}
+data$year <- as.numeric(data$`Prod. year`)
+data$brand <- as.factor(data$Manufacturer)
+data$fuel_type <- as.factor(data$`Fuel type`)
+data$Gear_box <- as.factor(data$ `Gear box type`)
+```
+
+```{r}
+Q1 <- quantile(data$Price, 0.25)
+Q3 <- quantile(data$Price, 0.75)
+IQR <- Q3 - Q1
+
+lower <- Q1 - 1.5*IQR
+upper <- Q3 + 1.5*IQR
+
+data <- data %>% filter(Price >= lower & Price <= upper)
+boxplot(data$Price)
+summary(data$Price)
+```
+
+```{r}
+library(DescTools)
+
+data$price_win <- Winsorize(data$Price)
+
+boxplot(data$price_win)
+summary(data$price_win)
+```
+
+```{r}
+Q1  <- quantile(data$`Engine volume`, 0.25, na.rm = TRUE)
+Q3  <- quantile(data$`Engine volume`, 0.75, na.rm = TRUE)
+IQR <- Q3 - Q1
+
+lower <- Q1 - 1.5 * IQR
+upper <- Q3 + 1.5 * IQR
+
+data <- data %>%
+  filter(`Engine volume` >= lower, `Engine volume` <= upper)
+
+boxplot(data$`Engine volume`)
+summary(data$`Engine volume`)
+```
+
+```{r}
+data$Mileage_win <- Winsorize(data$Mileage)
+boxplot(data$Mileage_win, main = "After")
+```
+
+```{r}
+data$Levy_wins <- Winsorize(
+  data$Levy)
+
+boxplot(data$Levy_wins, main = "After")
+```
+
+```{r}
+Q1 <- quantile(data$Cylinders, 0.25)
+Q3 <- quantile(data$Cylinders, 0.75)
+IQR <- Q3 - Q1
+
+lower <- Q1 - 1.5*IQR
+upper <- Q3 + 1.5*IQR
+data$Cylinders_wins <- Winsorize(
+  data$Cylinders)
+
+boxplot(data$Cylinders_wins, main = "After")
+summary(data$Cylinders)
+```
+
+```{r}
+ggplot(data, aes(price_win)) +
+  geom_histogram(bins = 30, fill = "steelblue") +
+  
+  labs(title = "Distribution of Car Prices")
+
+```
+
+If the bars are **higher on the left and lower on the right**, the distribution is **right-skewed**.\
+This means:
+
+-   Most cars in the dataset are **low- to mid-priced**.
+
+-   Only a small number of cars have **very high prices**.
+
+    ```{r}
+    ggplot(data, aes(y =price_win)) +
+      geom_boxplot(fill = "steelblue") + 
+      labs(
+        title = "Boxplot of Car Price",   
+        y = "Price")
+    ```
+
+```{r}
+top10_manufacturers <- data %>%
+  
+  count(Manufacturer, sort = TRUE) %>%
+  
+  slice_max(n, n = 10)
+
+ggplot(top10_manufacturers, aes(x = reorder(Manufacturer, n), y = n)) +
+  
+  
+  geom_bar(stat = "identity", fill = "steelblue") +
+  
+  # Flip coordinates to make labels readable
+  coord_flip() +
+  labs(
+    title = "Top 10 Manufacturers in Car Price Data",
+    x = "Manufacturer",
+    y = "Count"
+  ) +
+  
+  theme_minimal()
+```
+
+### **Manufacturers with the highest frequency**
+
+The manufacturers at the **top of the chart Toyota** appear most frequently in the dataset.\
+This means the dataset contains **more cars from Toyota** compared to others.
+
+```{r}
+# Create a bar plot to show counts of cars by fuel type
+ggplot(data, aes(x = `Fuel type`)) +   
+  geom_bar(fill = "blue") +          
+  labs(
+    title = "Count of Cars by Fuel Type",  
+    x = "Fuel Type",                        
+    y = "Count"                             
+  ) +
+  theme_minimal()  # Apply a clean minimal theme
+
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **number of cars for each fuel type** in the dataset.
+
+-   **Petrol** has the tallest bar, most cars run on petrol.
+
+-   Shorter bars indicate **less common fuel types** like Diesel, Hybrid, CNG,LPG and plug-in hybrid
+
+### **. Skewness**
+
+-   The dataset is **right**-**skewed**, which may affect analysis or modeling because one fuel type dominates, which may affect analysis or modeling.
+
+```{r}
+data %>%
+  group_by(`Prod. year`) %>%                             
+  summarise(AveragePrice = mean(Price)) %>%   
+ 
+  ggplot(aes(x = `Prod. year`, y = AveragePrice)) +      
+  geom_line(color = "skyblue", linewidth = 1.2) +        
+  geom_point(size = 2) +                                 
+  labs(
+    title = "Average Price by Year",                      
+    x = "Year",                                           
+    y = "Average Price"                                  
+  ) +
+  theme_minimal()                                         
+```
+
+# **Interpretation of the Plot**
+
+The line chart shows how **average car prices change over production years**.
+
+### **1. Trend over time**
+
+-   **Increasing line**: Average car prices are rising over the years
+-   **Decreasing line**: Could indicate price drops in recent years, possibly due to market saturation or cheaper models.
+
+### **2. Yearly variation**
+
+-   Points above or below the line indicate **years with higher or lower average prices**.
+
+-   This helps detect **anomalies** or **special editions**
+
+```{r}
+fuel_df <- data %>% count(`Fuel type`)
+ggplot(fuel_df, aes(x = "", y = n, fill = `Fuel type`)) +
+  geom_col(width = 1) +        
+  coord_polar("y") +           
+  labs(title = "Fuel Type Distribution")  
+```
+
+# **Interpretation of the Pie Chart**
+
+The pie chart shows the **proportion of cars by fuel type** in the dataset.
+
+-   The largest slice represents the **most common fuel type** Petrol.This indicates the majority of cars in your dataset use that fuel.
+-   Smaller slices represent **less frequent fuel types** such as Diesel, Hybrid, or CNG. These are rare in the dataset.
+-   Useful to identify imbalances, which can influence analysis or modeling.
+
+```{r}
+ggplot(data, aes(x = Wheel)) +        
+  geom_bar(fill = "steelblue") +      
+  labs(
+    title = "Wheel Type Distribution", 
+    x = "Wheel",                       
+    y = "Count"                         
+  ) +
+  theme_minimal()                       
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **number of cars for each wheel type** in the dataset.
+
+-   The tallest bar indicates the **most frequent wheel type** (Left wheel).
+
+-   Shorter bars show **less frequent wheel types (right-hand drive)**, which may represent cars from other markets or special models.
+
+-   Useful for understanding **market orientation** left wheel cars vs. right-hand drive cars.
+
+-   If one wheel type dominates, the dataset is **skewed toward that type (left-wheel)**, which may be important for analysis or modeling.
+
+```{r}
+ggplot(data, aes(x = Color)) +        
+  geom_bar(fill = "darkcyan") +        
+  labs(
+    title = "Color Distribution",      
+    x = "Color",                      
+    y = "Count"                        
+  ) +
+  theme_minimal()                              
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **number of cars for each color** in the dataset
+
+-   If a few colors dominate, the dataset is **skewed toward those colors**, which may affect visualization or model learning.
+
+```{r}
+ggplot(data, aes(x = Doors)) +       
+  geom_bar(fill = "darkcyan") +       
+  labs(
+    title = "Doors Distribution",     
+    x = "Doors",                      
+    y = "Count"                       
+  ) +
+  theme_minimal()                      
+
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **number of cars for each door configuration** in the dataset.Useful for analyzing **vehicle types** ( 2-door = sports cars, 4-door = family cars).
+
+-   If one door type dominates, the dataset is **skewed toward that type**, which may influence modeling or summary statistics.so the data is right-skewed
+
+```{r}
+ggplot(data, aes(x = Airbags)) +        
+  geom_bar(fill = "slateblue") +       
+  labs(
+    title = "Airbags Count Distribution", 
+    x = "Airbags",                       
+    y = "Count"                            
+  ) +
+  theme_minimal()                         
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **distribution of cars by number of airbags** in the dataset.( 4 or 6 airbags).
+
+-   The chart gives a **quick overview of safety feature distribution**.
+-   If most cars have a specific airbag count, the dataset is **left-skewed ,** which may influence predictive models.
+
+```{r}
+# Create a bar plot to show counts of cars by drive wheels
+ggplot(data, aes(x = `Drive wheels`)) +  
+  geom_bar(fill = "lightblue") +         
+  labs(
+    title = "Drive Wheels Distribution",  
+    x = "Drive Wheels",                   
+    y = "Count"                          
+  ) +
+  theme_minimal()                          # Apply a clean minimal theme
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **distribution of cars by drive wheel type** in the dataset.
+
+-   The chart provides a **quick overview of drivetrain diversity** in the dataset.
+
+-   Useful for analyzing **vehicle performance characteristics** or **market orientation**.
+
+-   If one drive type dominates, the dataset is **left-skewed** , which may influence modeling or comparative analysis.
+
+```{r}
+ggplot(data, aes(x = `Gear box type`)) +  
+  geom_bar(fill = "blue") +              
+  labs(
+    title = "Gear Box Type Distribution", 
+    x = "Gear Box Type",                
+    y = "Count"                           
+  ) +
+  theme_minimal()                          
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **distribution of cars by gear box type** in the dataset.
+
+-   Provides a **quick overview of gear box diversity** in the dataset.
+
+-   If one type dominates, the dataset is **left-skewed**, which may influence modeling.
+
+    ```{r}
+    sum(grepl(7, data$Cylinders_wins, ignore.case = TRUE))
+    ```
+
+```{r}
+data <- data %>% 
+  filter(Cylinders_wins != 7)
+ggplot(data, aes(x =Cylinders_wins)) +      
+  geom_bar(fill = "navy") +            
+  labs(
+    title = "Cylinders Count",         
+    x = "Cylinders",                  
+    y = "Count"                         
+  ) +
+  theme_minimal()                        
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **distribution of cars by number of cylinders** in the dataset.
+
+-   Provides an overview of **engine type diversity**.
+
+-   Useful for feature engineering or predicting **price, fuel consumption, or performance**.
+
+-   If lower-cylinder engines dominate, the dataset is **left-skewed toward smaller engines**, which may influence analysis and modeling.
+
+```{r}
+ggplot(data, aes(x = engine_volume)) +        
+  geom_density(
+    fill = "steelblue",                        
+    alpha = 0.6,                                
+    color = "black")                              
+  labs(
+    title = "Density Plot of Engine Volume",   
+    x = "Engine Volume (L)",                   
+    y = "Density"                             
+  ) +
+  theme_minimal()                                
+```
+
+# **Interpretation**
+
+The density plot visualizes the **distribution of engine volumes** as a smooth curve.
+
+-   A **right-skewed** curve indicates that **most cars have smaller engines**, while few cars have very large engines.
+
+-   Long tail to the right indicates **rare large-engine cars**, such as **luxury or sports vehicles**.
+
+```{r}
+ggplot(data, aes(x = `Leather interior`)) +   
+  geom_bar(fill = "lightblue") +             
+  labs(
+    title = "Leather Interior Distribution",
+    x = "Leather Interior",                  
+    y = "Count"                              
+  ) +
+  theme_minimal()                             
+
+```
+
+```{r}
+ggplot(data, aes(x = Category)) + geom_bar(fill = "navy") + 
+  labs( title = "Category Count", x = "Category", y = "Count" )+ 
+ theme_minimal() 
+
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **distribution of cars by category** in the dataset.
+
+-   Provides an overview of **vehicle type diversity**.
+
+-   Useful for **feature analysis** in modeling price, demand, or popularity trends.
+
+-   If certain categories dominate, the dataset is **right-skewed toward those types**, which may influence model predictions.
+
+```{r}
+ggplot(data, aes(x = `Fuel type`, y =price_win, fill = `Fuel type`)) +
+  geom_boxplot() +                               
+  labs(
+    title = "Price by Fuel Type",               
+    x = "Fuel Type",                            
+    y = "Price"                                 
+  ) +
+  theme_minimal()                                
+```
+
+# **Interpretation of the Boxplot**
+
+The boxplot shows the **distribution of car prices across different fuel types**.
+
+### **. Outliers**
+
+-   Points outside the whiskers represent **extremely high or low-priced cars**.
+
+### **. Comparison across fuel types**
+
+-   Fuel types with higher medians or higher upper whiskers are **more expensive on average**.
+
+-   Fuel types with lower medians indicate **more budget-friendly cars**.
+
+```{r}
+
+ggplot(data, aes(x = `Fuel type`, fill = `Drive wheels`)) +
+  geom_bar(position = "stack") +                  
+  labs(
+    title = "Drive Wheels by Fuel Type",         
+    x = "Fuel Type",                             
+    y = "Count"                                  
+  ) +
+  theme_minimal()                                
+```
+
+# **Interpretation of the Plot**
+
+The stacked bar chart shows how **drive wheel types** (FWD, RWD, AWD, etc.) are distributed across **different fuel types**.
+
+-   Different colors within the bar show the **count of cars with each drive wheel type**.
+
+### **. Comparison across fuel types**
+
+-   You can see **trends** such as
+
+```         
+-    Whether certain drive types are exclusive to specific fuel types.
+
+-   Which fuel types are mostly Rear vs Front
+```
+
+```{r}
+# Select top 5 most expensive cars
+top5 <- data %>%
+  arrange(desc(Price)) %>%  # Sort data in descending order of Price
+  head(n = 5)               # Select top 5 rows
+
+# Create a bar plot for top 5 models by price
+top5 %>%
+  ggplot(aes(x = reorder(Model, Price), y = Price, fill = Model)) +  
+  # Reorder models by Price
+  geom_col() +
+  coord_cartesian(ylim = c(10000, 50000))+
+  # Draw bars with height = Price
+  geom_text(aes(label = Price), vjust = -0.5) +                       
+  # Show Price value above each bar
+  labs(
+    title = "Top 5 Models by Price",                                  
+    # Plot title
+    x = "Model",                                                       
+    # X-axis label
+    y = "Price"                                                        
+    # Y-axis label
+  ) +
+  theme_minimal() +                                                    
+  # Clean minimal theme
+  theme(
+    legend.position = "none",                                          
+    # Remove legend
+    axis.text.x = element_text(angle = 45, hjust = 1)                  
+    # Tilt x-axis labels for readability
+  )
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **top 5 most expensive car models** in the dataset.
+
+-   Helps identify **premium vehicles** in the dataset.
+
+### **. Insights**
+
+-   Highlights **luxury or high-end models**
+
+-   Useful for market analysis, pricing studies, or targeting luxury segments.
+
+```{r}
+data %>%
+  count(Category, sort = TRUE) %>%                 
+  slice_head(n = 5) %>%                            
+  pull(Category) -> top5                          
+
+data %>%
+  filter(Category %in% top5) %>%                   
+  group_by(Category) %>%
+  summarise(mean_engine = mean(engine_volume, na.rm = TRUE)) %>%
+  ggplot(aes(x = Category, y = mean_engine, fill = Category)) +
+  geom_col() +
+  theme_minimal()
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **average engine volume** for the **top 5 car categories** in the dataset.
+
+### **. Insights about car types**
+
+-   Luxury SUVs or sports cars often have **higher engine volumes**.
+
+-   Compact cars or city cars usually have **smaller engine volumes**.
+
+### **. Dataset composition**
+
+-   Shows how **engine size varies by category**, which can be linked to **performance, price, and fuel efficiency**.
+
+```{r}
+top5_cat <- data %>%
+  group_by(Category) %>%
+  summarise(
+    avg_price = mean(Price, na.rm = TRUE)
+  ) %>%
+  arrange(desc(avg_price)) %>%
+  slice_head(n = 5)
+ggplot(top5_cat, aes(x = reorder(Category, avg_price), y = avg_price)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  geom_text(aes(label = round(avg_price, 0)), 
+            vjust = -0.5, size = 4) +
+  labs(
+    title = "Top 5 Categories by Average Price",
+    x = "Category",
+    y = "Average Price"
+  ) +
+  theme_minimal()
+
+```
+
+# **Interpretation of the Plot**
+
+The bar chart shows the **top 5 most expensive categories** in the dataset, with **cylinder count represented by color**.
+
+### **. Insights**
+
+-   Reveals the **relationship between price, category, and engine size (cylinders)**.
+
+-   Useful for market analysis, feature engineering, and understanding high-end vehicle characteristics.
+
+```{r}
+library(scales)
+top5_mfr <- data |>
+  count(Manufacturer, sort = TRUE) |>
+  slice_head(n = 5) |>
+  pull(Manufacturer)
+
+df_mfr <- data |>
+  mutate(Mileage = as.numeric(gsub(" km", "", Mileage))) |>  
+
+  filter(Manufacturer %in% top5_mfr) |>
+  group_by(Manufacturer) |>
+  summarise(
+    avg_mileage = mean(Mileage),
+    .groups = "drop"
+  )
+
+ggplot(df_mfr,
+       aes(x = reorder(Manufacturer, avg_mileage),  
+           y = avg_mileage,
+           fill = Manufacturer)) +
+  geom_col() +                                    
+  coord_flip() +                                  
+  labs(
+    title = "Average Mileage by Top 5 Manufacturers",
+    x = "Manufacturer",
+    y = "Average Mileage (km)"
+  ) +
+  scale_y_continuous(labels = comma) +           
+  theme_minimal() +
+  theme(legend.position = "none")                
+```
+
+# Interpretation of the Plot
+
+-   This bar chart shows **how fuel types are distributed among the top 5 most frequent models**.
+-   Helps identify **which fuel types dominate popular models** and spot **model-specific fuel trends**.
+-   Useful for **market analysis**, **customer preference insights**, and **feature exploration for modeling**.
+
+```{r}
+top_models <- data |>
+  count(Model, sort = TRUE) |>       
+  slice_head(n = 5) |>               
+  pull(Model)                        
+
+df_top <- data |>
+  filter(Model %in% top_models)      
+ggplot(df_top,
+       aes(x = Model, fill = `Fuel type`)) +    
+  geom_bar(position = "dodge") +               
+  labs(
+    title = "Fuel Type Distribution for Top 5 Models", 
+    x = "Model",                                       
+    y = "Count"                                       
+  ) +
+  theme_minimal()
+```
+
+# **Interpretation of the Plot**
+
+-   The side-by-side bars show how many cars of each fuel type exist **for each of the top 5 models**.
+
+-   Reveals **fuel preferences for popular models** in the dataset.
+
+-   useful for market analysis ,business strategy and predictive modeling
+
+-   Shows whether the **top-selling models** are concentrated in a **specific fuel type** or diversified across multiple types.
+
+# Encoding
+
+```{r}
+data$Category_enc <- as.integer(factor(data$Category))
+encoding_table <- unique(
+  data[, c("Category", "Category_enc")]
+)
+encoding_table[order(encoding_table$Category_enc), ]
+```
+
+```{r}
+
+data$Fuel_type_enc <- as.integer(factor(data$`Fuel type`))
+encoding_table_fuel <- unique(
+  data[, c("Fuel type", "Fuel_type_enc")]
+)
+encoding_table_fuel[order(encoding_table_fuel$Fuel_type_enc), ]
+```
+
+```{r}
+
+data$Drive_wheels_enc <- as.integer(factor(data$`Drive wheels`))
+
+encoding_table_drive <- unique(
+  data[, c("Drive wheels", "Drive_wheels_enc")]
+)
+
+encoding_table_drive[order(encoding_table_drive$Drive_wheels_enc), ]
+```
+
+```{r}
+
+data$Gear_box_enc <- as.integer(factor(data$`Gear box type`))
+
+encoding_table_gear <- unique(
+  data[, c("Gear box type", "Gear_box_enc")]
+)
+
+encoding_table_gear[order(encoding_table_gear$Gear_box_enc), ]
+```
+
+```{r}
+
+data$Manufacturer_enc <- as.integer(factor(data$Manufacturer))
+encoding_table_manuf <- unique(
+  data[, c("Manufacturer", "Manufacturer_enc")]
+)
+encoding_table_manuf[order(encoding_table_manuf$Manufacturer_enc), ]
+```
+
+```{r}
+data
+```
+
+```{r}
+data <- data %>%
+  select(-`Fuel type`, -`Gear box type`, -Manufacturer,-`Prod. year`)
+
+```
+
+```{r}
+data <- data %>%
+  select(-`Prod. year`)
+```
+
+```{r}
+data
+```
+
+# **Interpretation**
+
+-   This code **encodes a categorical variable as numeric**, which is useful for **machine learning models** that require numeric input.
+-   This is called **label encoding**.
+-   For algorithms that assume **ordinal relationships** (like linear regression), this can be misleading if the categories are **nominal** (no inherent order).
+
+# **Data Manipulation**
+
+### Difference between "as_tibble" & "as_data_frame"
+
+### as_tibble()
+
+-   **New, recommended function**
+
+-   Also from **tibble / tidyverse**
+
+-   Does the **same job**, but with better support and consistency
+
+### as_data_frame()
+
+-   **Old function name**
+
+-   Came from the **tibble** package
+
+-   **Deprecated** (you’ll often see a warning if you use it)
+
+```{r}
+as_data_frame(data)
+```
+
+### as_tibble()
+
+-   A tibble will only show the first 10 rows of data
+
+-   It also will shorten or remove columns if they do not fit in your output window
+
+-   Printing a tibble shows the size of the data and the types of the variables.
+
+```{r}
+as_tibble(data)
+```
+
+## Descriptive questions
+
+### Q1. What are the mean, median, and minimum/maximum car prices?
+
+```{r}
+ data %>%   
+   select(price_win) %>%  
+   summarise( mean_price  = mean(price_win),median_price = median(price_win),     min_price  = min(price_win),max_price = max(price_win))
+```
+
+### Q2. How many cars are there for each fuel type?
+
+```{r}
+data %>%   
+  group_by(fuel_type) %>%   
+  summarise(count = n()) %>%   
+  arrange(desc(count))
+```
+
+### Q3. What is the average price for manufacturers with at least 20 cars?
+
+```{r}
+data %>%   
+  group_by(brand) %>%   
+  summarise(avg_price = mean(Price),cars = n()) %>%  
+  filter(cars >= 20) %>%   
+  arrange(desc(avg_price))
+```
+
+### Q4. What are the range, variance, and standard deviation of car prices?
+
+```{r}
+data %>%   
+  select(Price) %>%   
+  summarise(price_range = max(Price) - min(Price),
+            variance= var(Price),sd_price = sd(Price))
+```
+
+### Q5. How does price variability differ by fuel type for cars priced below 50,000?
+
+```{r}
+data %>%   
+  filter(Price < 50000) %>%   
+  group_by(fuel_type) %>%   
+  summarise(     sd_price  = sd(Price, na.rm = TRUE),     var_price = var(Price, na.rm = TRUE),     count     = n()   ) %>%   
+  arrange(desc(sd_price))
+```
+
+### Q6. Create `Car_age` and find the average price for cars produced after 2005
+
+```{r}
+data %>%    
+  mutate(Car_Age = 2025 - year)
+  
+
+```
+
+```{r}
+as_tibble(data)
+```
+
+```{r}
+data %>%
+  filter(year > 2005) %>%
+  group_by(Car_Age) %>%
+  summarise(
+    avg_price = mean(Price,na.rm = TRUE),
+    cars = n()
+  ) %>%
+  arrange(desc(Car_Age))
+```
+
+### Q7. Show the top 10 most expensive automatic cars
+
+```{r}
+data %>%
+  filter(Gear_box == "Automatic") %>%
+  select(brand, Model, Price) %>%
+  arrange(desc(Price)) %>%
+  slice_head(n = 10)
+```
+
+### Q8. What is the covariance between mileage and price?
+
+```{r}
+data %>%   summarise(covariance = cov(Price,Mileage , use = "complete.obs"))
+```
+
+### Q9. For the cars produced after 2010, is there a relationship between mileage and price?
+
+```{r}
+ data %>%   
+filter(year> 2010) %>%  
+summarise(pearson_correlation = cor(Price,Mileage))
+```
+
+### Q10. For the cars produced after 2012, does higher mileage generally means lower price across fuel types ?
+
+```{r}
+data %>%   
+  filter(year > 2012) %>%   
+  group_by(fuel_type) %>%   
+  summarise(spearman_correlation = cor(rank(Price), (Mileage)),count = n())
+```
+
+### Q11. Provide a descriptive summary of car prices by gearbox type?
+
+```{r}
+data %>%
+  group_by(Gear_box) %>%
+  summarise(
+    mean_price   = mean(Price),
+    median_price = median(Price),
+    sd_price     = sd(Price),
+    min_price    = min(Price),
+    max_price    = max(Price),
+    cars         = n()
+  ) %>%
+  arrange(desc(mean_price))
+
+```
+
+# STATISTICAL INFERENCE
+
+## Data Distribution Check (Normality Test)
+
+Before applying parametric tests, we check if our data follows a normal distribution using a QQ-Plot.
+
+```{r}
+# QQ-Plot to check normality of the data 
+# If points follow the red diagonal line → data is normal 
+# If points curve away → data is NOT normal 
+qqnorm(data$Price, main = "QQ-Plot: Data Normality Check", col = "steelblue", pch = 16) +
+  qqline(data$Price, col = "red", lwd = 2)  
+# Observation: Points curve away from the line
+# Conclusion: Data is NOT normally distributed (right-skewed) 
+# However, with n > 17,000, Central Limit Theorem applies 
+# CLT ensures sampling distribution of means is normal for large samples
+```
+
+------------------------------------------------------------------------
+
+## GOAL 1: PRICE DETERMINANTS
+
+### Test 1: Do Left-Wheel Cars Cost More Than Right-Hand Drive Cars?
+
+```{r}
+# Independent Two-sample t-test 
+# H0: mean(left wheel) = mean(right-hand drive) 
+# H1: mean(left wheel) ≠ mean(right-hand drive)  
+left_wheel <- data %>% 
+  filter(Wheel == "Left wheel") %>% 
+  pull(Price) right_wheel <- data %>% 
+  filter(Wheel == "Right-hand drive") %>% 
+  pull(Price)  
+cat("Left wheel cars: n =", length(left_wheel), ", mean = $", round(mean(left_wheel), 2), "\n")
+cat("Right-hand drive cars: n =", length(right_wheel), ", mean = $", round(mean(right_wheel), 2), "\n\n")  
+
+test1 <- t.test(left_wheel, right_wheel) print(test1) 
+# Decision based on p-value cat("\nDecision:", ifelse(test1$p.value < 0.05,      "Reject H0 - Prices ARE different", "Fail to Reject H0"), "\n")
+```
+
+------------------------------------------------------------------------
+
+### Test 2: Do Cars with More Airbags (≥6) Cost More?
+
+```{r}
+# Independent Two-sample t-test 
+# H0: mean(high airbags) = mean(low airbags) 
+# H1: mean(high airbags) ≠ mean(low airbags)  
+high_airbags <- data %>% 
+  filter(Airbags >= 6) %>% 
+  pull(Price) low_airbags <- data %>% 
+  filter(Airbags < 6) %>% 
+  pull(Price) 
+cat("High Airbags (≥6): n =", length(high_airbags), ", mean = $", round(mean(high_airbags), 2), "\n") 
+cat("Low Airbags (<6): n =", length(low_airbags), ", mean = $", round(mean(low_airbags), 2), "\n\n")  
+
+test2 <- t.test(high_airbags, low_airbags) print(test2)  
+
+# Decision based on p-value cat("\nDecision:", ifelse(test2$p.value < 0.05,      "Reject H0 - Prices ARE different", "Fail to Reject H0"), "\n")
+```
+
+------------------------------------------------------------------------
+
+## GOAL 2: CATEGORICAL RELATIONSHIPS
+
+### Test 3: Is Gear Box Type Related to Car Category?
+
+```{r}
+# Chi-square test of independence 
+# H0: Gear box type and Category are independent 
+# H1: Gear box type and Category are related  
+gear_category <- xtabs(~ Gear_box + Category, data = data) 
+cat("Contingency Table:\n") print(addmargins(gear_category))  
+cat("\n") test3 <- chisq.test(gear_category) print(test3)  
+# Decision based on p-value 
+cat("\nDecision:", ifelse(test3$p.value < 0.05,"Reject H0 - Variables ARE related", "Fail to Reject H0"), "\n")
+```
+
+------------------------------------------------------------------------
+
+## GOAL 3: TRANSMISSION & AGE EFFECTS
+
+### Test 4: Does Price Differ Across Transmission Types?
+
+```{r}
+# ANOVA (Analysis of Variance) 
+# H0: mean(automatic) = mean(manual) = mean(tiptronic) 
+# H1: At least one mean is different  
+gear_data <- data %>%    
+  filter(`Gear box type` %in% c("Automatic", "Manual", "Tiptronic"))  
+cat("Group sizes:\n") print(table(gear_data$`Gear box type`))  
+cat("\nGroup means:\n") gear_data %>%    
+  group_by(`Gear box type`) %>%    
+  summarise(n = n(), mean_price = round(mean(Price), 2), .groups = "drop") %>%   print()  cat("\n") test4 <- aov(Price ~ `Gear box type`, data = gear_data) print(summary(test4))  
+# Decision based on p-value 
+anova_pval <- summary(test4)[[1]][["Pr(>F)"]][1] 
+cat("\nDecision:", ifelse(anova_pval < 0.05,"Reject H0 - At least one group is different", "Fail to Reject H0"), "\n")
+```
+
+------------------------------------------------------------------------
+
+### Test 5: Do Newer Cars (2015+) Cost More Than Older Cars?
+
+```{r}
+# Independent Two-sample t-test (NOT paired - different cars) 
+# H0: mean(new) = mean(old) 
+# H1: mean(new) ≠ mean(old)  
+new_prices <- data %>% 
+  filter(`Prod. year` >= 2015) %>% 
+  pull(Price) old_prices <- data %>% 
+  filter(`Prod. year` < 2015) %>% 
+  pull(Price)  
+cat("New cars (2015+): n =", length(new_prices), ", mean = $", round(mean(new_prices), 2), "\n") cat("Old cars (<2015): n =", length(old_prices), ", mean = $", round(mean(old_prices), 2), "\n\n")  
+test5 <- t.test(new_prices, old_prices) print(test5)  
+# Decision based on p-value 
+cat("\nDecision:", ifelse(test5$p.value < 0.05,      "Reject H0 - Prices ARE different", "Fail to Reject H0"), "\n")
+```
+
+------------------------------------------------------------------------
+
+```{r}
+boxplot(data$`Engine volume`)
+summary(data$`Engine volume`)
+```
+
+```{r}
+data_final <- data |>
+  select(price_win, Mileage_win, engine_volume,year, Fuel_type_enc, Gear_box_enc, Manufacturer_enc,Levy  )
+```
+
+```{r}
+set.seed(123)
+
+n  <- nrow(data)
+id <- sample(1:n, size = 0.8 * n)
+
+train <- data_final[id,]
+test  <- data_final[-id,]
+```
+
+```{r}
+library(randomForest)
+
+set.seed(123)
+
+rf_model <- randomForest(
+  price_win ~ .,          
+  data  = train,
+  ntree = 500,
+  mtry  = 2,
+  importance = TRUE
+)
+rf_model
+```
+
+```{r}
+pred <- predict(rf_model, newdata = test)
+
+cor(test$price_win, pred)^2
+```
