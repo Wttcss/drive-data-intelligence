@@ -23,7 +23,7 @@ The platform consists of three core pillars:
 ### 1. 📊 Mission Control
 The home dashboard provides an immediate pulse on the market, tracking KPIs like Total Volume, Average Levy, and Stock Levels. It visualizes the right-skewed nature of the market, identifying the dominance of budget-friendly vehicles versus luxury outliers.
 
-![Dashboard Preview](assets/Screenshot 2026-01-22 195123.png) 
+![Dashboard Preview](assets/dashboard-preview.png)
 
 ### 2. 🔮 The Forecasting Studio (AI Configurator)
 The crown jewel of the application. This module allows users to interact directly with the **Random Forest** model.
@@ -91,24 +91,22 @@ To test the robustness of our data cleaning pipelines, we engineered a synthetic
 
 ## 📂 Repository Structure
 
-The project is organized into a modular structure to separate the **production application** from the **exploratory analysis**.
-
 ```text
 onyx-auto-analytics/
 │
-├── 📂 app/                     # 🚀 The Production Dashboard
-│   └── app.R                   #    Main Shiny application source code (UI & Server)
+├── app/
+│   └── app.R                  # The Production Shiny Application
 │
-├── 📂 analysis/                # 🧠 Data Science & Research
-│   ├── 01_eda_and_model.qmd    #    Full EDA, Hypothesis Testing & Random Forest Training
-│   └── 02_simulation.qmd       #    Synthetic Data Study & Cleaning Pipeline Validation
+├── analysis/
+│   ├── 01_eda_and_model.qmd   # Main Analysis, Hypothesis Testing & ML
+│   └── 02_simulation.qmd      # Synthetic Data Study
 │
-├── 📂 scripts/                 # 🛠️ Utilities & Helpers
-│   └── generate_simulation.R   #    Raw R script for generating the synthetic dataset
+├── scripts/
+│   └── generate_simulation.R  # Raw script for data generation
 │
-├── 📂 assets/                  # 📸 Project Documentation
-│   ├── dashboard-preview.png   #    Screenshots used in this README
-│   ├── forecasting-studio.png  #    UI captures of the AI Configurator
-│   └── data-explorer.png       #    Data table screenshots
+├── assets/                    # Project Screenshots & Visuals
+│   ├── dashboard-preview.png
+│   ├── forecasting-studio-ui.png
+│   └── ...
 │
-└── 📜 README.md                # 📖 Project Documentation & Setup Guide
+└── README.md                  # Project Documentation
