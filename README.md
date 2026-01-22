@@ -43,71 +43,62 @@ Transparency is key. The Data Explorer module utilizes the `DT` library to provi
 ## 🧠 The Science
 
 ### 🔍 1. Exploratory Data Analysis (EDA)
-We conducted a deep dive into the dataset (`analysis/01_car_price_analysis.qmd`), revealing critical market trends:
-* [cite_start]**Market Leaders:** Toyota dominates the inventory, followed by Hyundai and Mercedes-Benz[cite: 15].
-* **Price Skewness:** The dataset is heavily right-skewed. [cite_start]We applied **Winsorization** to handle extreme outliers in Price and Mileage before modeling[cite: 12].
-* [cite_start]**Fuel Trends:** Petrol is the dominant fuel type, though Hybrids show a strong presence in the mid-market segment[cite: 27].
+We conducted a deep dive into the dataset, revealing critical market trends regarding price distribution and skewness. We applied **Winsorization** to handle extreme outliers in Price and Mileage before modeling.
 
-![Price Distribution](assets/price_dist.png)
-[Price Distribution](assets/price_dist2.png)
+![Price Distribution](assets/price-dist.png)
 
-### 🧪 2. Statistical Inference
+### 📈 2. Market Dominance & Brand Positioning
+Our analysis highlighted clear market leaders. Toyota dominates the inventory volume, while brands like Mercedes-Benz and Lexus command higher average price points, creating distinct market segments.
+
+![Market Share](assets/market-share.png)
+
+### 🧪 3. Statistical Inference
 We moved beyond visualization to statistical proof using R's inference capabilities:
-* [cite_start]**T-Tests:** Confirmed a statistically significant price difference between Left-Wheel and Right-Hand drive cars[cite: 126].
-* [cite_start]**ANOVA:** Analyzed price variance across transmission types (Automatic vs. Manual vs. Tiptronic)[cite: 131].
-* [cite_start]**Chi-Square:** Validated the dependency between Gearbox types and Vehicle Categories[cite: 130].
+* **T-Tests:** Confirmed a statistically significant price difference between Left-Wheel and Right-Hand drive cars.
+* **ANOVA:** Analyzed price variance across transmission types (Automatic vs. Manual vs. Tiptronic).
+* **Chi-Square:** Validated the dependency between Gearbox types and Vehicle Categories.
 
-### 🤖 3. Machine Learning Pipeline
+### 🤖 4. Machine Learning Pipeline
 * **Algorithm:** Random Forest Regressor (`randomForest` package).
-* [cite_start]**Preprocessing:** Log-transformations for skewed features and label encoding for categorical variables[cite: 104, 157].
+* **Preprocessing:** Log-transformations for skewed features and label encoding for categorical variables.
 * **Features:** Year, Mileage, Brand, Fuel, Category, Gearbox, Leather Interior, Turbo status.
-* [cite_start]**Validation:** The model was evaluated using an 80/20 train-test split to ensure generalizability[cite: 135].
 
 ---
 
 ## 🧬 Simulation Study: "The Digital Twin"
-To test the robustness of our data cleaning pipelines, we engineered a synthetic dataset (`analysis/02_simulation_study.qmd`) that mirrors the statistical properties of the real world.
+To test the robustness of our data cleaning pipelines, we engineered a synthetic dataset that mirrors the statistical properties of the real world.
 
-* [cite_start]**Generation:** Created $n=19,237$ records using Log-Normal distributions for Price and Exponential distributions for Mileage[cite: 136].
+* **Generation:** Created 19,237 records using Log-Normal distributions for Price and Exponential distributions for Mileage.
 * **Controlled Chaos:** We intentionally injected specific error modes to test cleaning logic:
-    * [cite_start]**5%** Missing Numeric Data (MCAR)[cite: 140].
-    * [cite_start]**2%** Typos in Categorical variables (e.g., "Toyota_typo")[cite: 140].
-    * [cite_start]**2%** Extreme Numeric Outliers[cite: 140].
+    * **5%** Missing Numeric Data (MCAR).
+    * **2%** Typos in Categorical variables (e.g., "Toyota_typo").
+    * **2%** Extreme Numeric Outliers.
 * **Outcome:** The cleaning pipeline successfully recovered the original distribution properties from the corrupted synthetic data.
-
----
-
-## 🛠️ Tech Stack & Architecture
-
-| Component | Technology | Description |
-| :--- | :--- | :--- |
-| **Core** | R 4.3+ | Primary language for analysis and app logic. |
-| **UI Framework** | `shiny`, `bs4Dash` | Professional Bootstrap 4 dashboard framework. |
-| **Data Wrangling** | `tidyverse`, `janitor` | ETL pipelines and cleaning. |
-| **Visualization** | `ggplot2`, `plotly` | Static and interactive charts. |
-| **Modeling** | `randomForest` | Predictive modeling engine. |
-| **Tables** | `DT` | Interactive data tables. |
 
 ---
 
 ## 📂 Repository Structure
 
+The project is organized into a modular structure to separate the **production application** from the **exploratory analysis**.
+
 ```text
 onyx-auto-analytics/
 │
-├── app/
-│   └── app.R                  # The Production Shiny Application
+├── 📂 app/                     # 🚀 The Production Dashboard
+│   └── app.R                   #    Main Shiny application source code (UI & Server)
 │
-├── analysis/
-│   ├── 01_eda_and_model.qmd   # Main Analysis, Hypothesis Testing & ML
-│   └── 02_simulation.qmd      # Synthetic Data Study
+├── 📂 analysis/                # 🧠 Data Science & Research
+│   ├── 01_eda_and_model.qmd    #    Full EDA, Hypothesis Testing & Random Forest Training
+│   └── 02_simulation.qmd       #    Synthetic Data Study & Cleaning Pipeline Validation
 │
-├── scripts/
-│   └── generate_simulation.R  # Raw script for data generation
+├── 📂 scripts/                 # 🛠️ Utilities & Helpers
+│   └── generate_simulation.R   #    Raw R script for generating the synthetic dataset
 │
-├── assets/                    # Project Screenshots & Visuals
-│   ├── dashboard-preview.png
-│   ├── forecasting-studio-ui.png
-│   └── ...
+├── 📂 assets/                  # 📸 Project Documentation
+│   ├── dashboard-preview.png   #    Home screen screenshot
+│   ├── forecasting-studio.png  #    AI Configurator screenshot
+│   ├── data-explorer.png       #    Data Table screenshot
+│   ├── price-dist.png          #    EDA Plot screenshot
+│   └── market-share.png        #    Market Analytics screenshot
 │
-└── README.md                  # Project Documentation
+└── 📜 README.md                # 📖 Project Documentation & Setup Guide
