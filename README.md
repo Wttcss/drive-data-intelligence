@@ -39,7 +39,30 @@ Transparency is key. The Data Explorer module utilizes the `DT` library to provi
 ![Data Table](assets/data-explorer.png)
 
 ---
+## 📂 The Dataset
 
+The project utilizes a rich dataset comprising **19,237 records** of car sales transactions. It includes a mix of numerical, categorical, and text-based features used to determine vehicle valuation.
+
+### 📋 Feature Dictionary
+
+| Variable | Type | Description |
+| :--- | :--- | :--- |
+| **Price** | `Numeric` | The target variable. Transaction price of the vehicle (USD). |
+| **Levy** | `Numeric` | Tax amount associated with the vehicle. |
+| **Manufacturer** | `Categorical` | Brand of the car (e.g., Toyota, BMW, Mercedes-Benz). |
+| **Model** | `Categorical` | Specific model name (e.g., Prius, E-Class). |
+| **Prod. Year** | `Numeric` | The year the vehicle was manufactured. |
+| **Category** | `Categorical` | Body style (e.g., Sedan, SUV, Hatchback). |
+| **Leather Interior** | `Binary` | Presence of leather seats (Yes/No). |
+| **Fuel Type** | `Categorical` | Energy source (Petrol, Diesel, Hybrid, CNG). |
+| **Engine Volume** | `Numeric` | Engine size in liters. Includes "Turbo" designation. |
+| **Mileage** | `Numeric` | Total distance driven (km). |
+| **Cylinders** | `Numeric` | Number of cylinders in the engine. |
+| **Gear Box Type** | `Categorical` | Transmission style (Automatic, Manual, Tiptronic). |
+| **Drive Wheels** | `Categorical` | Drivetrain configuration (FWD, RWD, 4x4). |
+| **Airbags** | `Numeric` | Number of airbags installed for safety. |
+
+---
 ## 🧠 The Science
 
 ### 🔍 1. Exploratory Data Analysis (EDA)
