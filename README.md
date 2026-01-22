@@ -23,7 +23,7 @@ The platform consists of three core pillars:
 ### 1. 📊 Mission Control
 The home dashboard provides an immediate pulse on the market, tracking KPIs like Total Volume, Average Levy, and Stock Levels. It visualizes the right-skewed nature of the market, identifying the dominance of budget-friendly vehicles versus luxury outliers.
 
-![Dashboard Preview](assets/dashboard-preview.png)
+![Dashboard Preview](assets/Screenshot 2026-01-22 195123.png) 
 
 ### 2. 🔮 The Forecasting Studio (AI Configurator)
 The crown jewel of the application. This module allows users to interact directly with the **Random Forest** model.
