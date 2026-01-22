@@ -71,7 +71,7 @@ To test the robustness of our data cleaning pipelines, we engineered a synthetic
 * **Generation:** Created 19,237 records using Log-Normal distributions for Price and Exponential distributions for Mileage.
 * **Controlled Chaos:** We intentionally injected specific error modes to test cleaning logic:
     * **5%** Missing Numeric Data (MCAR).
-    * **2%** Typos in Categorical variables (e.g., "Toyota_typo").
+    * **2%** Typos in Categorical variables ( "Toyota_typo").
     * **2%** Extreme Numeric Outliers.
 * **Outcome:** The cleaning pipeline successfully recovered the original distribution properties from the corrupted synthetic data.
 
@@ -102,3 +102,51 @@ onyx-auto-analytics/
 │   └── market-share.png        #    Market Analytics screenshot
 │
 └── 📜 README.md                # 📖 Project Documentation & Setup Guide
+```
+## 🛠️ Tech Stack
+
+| Component | Technology | Description |
+| :--- | :--- | :--- |
+| **Core** | R 4.3+ | Primary language for analysis, statistical inference, and application logic. |
+| **UI Framework** | `shiny`, `bs4Dash` | Professional Bootstrap 4 dashboard framework with custom CSS styling. |
+| **Data Wrangling** | `tidyverse`, `janitor` | Comprehensive ETL pipelines, data cleaning, and manipulation. |
+| **Visualization** | `ggplot2`, `plotly` | High-quality static plots and interactive, web-ready charts. |
+| **Modeling** | `randomForest` | Predictive modeling engine used for the price estimation algorithm. |
+| **Tables** | `DT` | Interactive data tables with search, sort, and pagination capabilities. |
+## 🚀 Getting Started
+
+Follow these steps to set up the project locally on your machine.
+
+### 1. Prerequisites
+Ensure you have the following installed:
+* [R](https://cran.r-project.org/) (Version 4.0 or higher)
+* [RStudio](https://posit.co/download/rstudio-desktop/) (Recommended)
+* [Git](https://git-scm.com/)
+
+### 2. Clone the Repository
+Open your terminal or Git Bash and run:
+
+```bash
+git clone [https://github.com/yourusername/onyx-auto-analytics.git](https://github.com/yourusername/onyx-auto-analytics.git)
+cd onyx-auto-analytics
+``` 
+### 3. Install Dependencies
+Open the project in RStudio (`onyx-auto-analytics.Rproj`) and run the following command in the R Console to install the required libraries:
+
+```r
+install.packages(c(
+  "shiny", 
+  "bs4Dash", 
+  "tidyverse", 
+  "plotly", 
+  "randomForest", 
+  "DT", 
+  "janitor",
+  "shinycssloaders",
+  "shinyWidgets"
+))
+```
+### 4. Run the Application
+You can launch the dashboard directly from the R console:
+shiny::runApp("app/app.R")
+Alternatively, open app/app.R in RStudio and click the Run App button in the top right corner of the script editor.
